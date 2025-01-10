@@ -1,54 +1,82 @@
-# Sequential Thinking MCP Server 🧠
+# Sequential Thinking MCP Server
 
-A powerful Model Context Protocol (MCP) server that helps break down complex problems into clear, sequential steps. This tool enhances structured problem-solving by managing thought sequences, allowing revisions, and supporting multiple solution paths.
+A Model Context Protocol (MCP) server that helps break down complex problems into clear, sequential steps. This tool enhances structured problem-solving by managing thought sequences, allowing revisions, and supporting multiple solution paths.
 
-## 🌟 Key Features
+## Features
 
-- **Sequential Problem Solving**: Break down complex problems step-by-step
-- **Full MCP Integration**: Seamless integration with Claude Desktop
+- 🧠 **Sequential Problem Solving**: Break down complex problems step-by-step
+- 🔄 **Thought Revisions**: Review and modify previous thinking steps
+- 🌿 **Branching Paths**: Explore multiple solution approaches
+- 📊 **Progress Tracking**: Monitor thought sequences and branches
+- ⚡ **Rich Formatting**: Visual distinction between thoughts, revisions, and branches
 
-## 🚀 Getting Started
+## Prerequisites
 
-### System Requirements
-- Python 3.10+
-- UV package manager (preferred) or pip
-- Claude Desktop application
+- Python 3.11 or higher
+- UV package manager ([Install Guide](https://github.com/astral-sh/uv))
 
-### Step-by-Step Installation
+## Project Structure
 
-1. **Set Up Environment**
-  ```bash
-  # Create and activate virtual environment
-  uv venv
-  .venv\Scripts\activate  # Windows
-  source .venv/bin/activate  # Unix/Mac
-  ```
+```
+mcp-sequential-thinking/
+├── mcp_sequential_thinking/
+│   ├── server.py
+│   └── __init__.py
+├── README.md
+└── pyproject.toml
+```
 
-2. **Install Package**
-  ```bash
-  uv venv
-.venv\Scripts\activate
-uv pip install -e .
-  ```
+## Quick Start
 
-3. **Launch Server**
-  ```bash
-  mcp-sequential-thinking
-  ```
+1. **Set Up Project**
+   ```bash
+   # Create and activate virtual environment
+   uv venv
+   .venv\Scripts\activate  # Windows
+   source .venv/bin/activate  # Unix
+   
+   # Install package and dependencies
+   uv pip install -e .
+   ```
 
-4. **Configure Claude Desktop**
-  Add to `claude_desktop_config.json`:
-  ```json
-  {
-    "mcpServers": {
-     "sequential-thinking": {
-      "command": "C:\\path\\to\\your\\.venv\\Scripts\\mcp-sequential-thinking.exe"
-     }
+## Claude Desktop Integration
+
+Add to your Claude Desktop configuration (`%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+
+```json
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:\\path\\to\\your\\mcp-sequential-thinking\\mcp_sequential_thinking",
+        "run",
+        "server.py"
+      ]
     }
   }
-  ```
+}
+```
 
-## 🛠️ Core Parameters
+## Development
+
+Test the server manually:
+```bash
+cd mcp_sequential_thinking
+uv run server.py
+```
+
+## Troubleshooting
+
+Common issues:
+
+- **Server Connection Issues**
+  - Verify paths in claude_desktop_config.json
+  - Check Claude Desktop logs: `%APPDATA%\Claude\logs`
+  - Test manual server start
+
+## Parameters
 
 | Parameter | Description | Required |
 |-----------|-------------|----------|
@@ -61,38 +89,11 @@ uv pip install -e .
 | `branch_from_thought` | Starting point for new branch | No |
 | `branch_id` | Unique branch identifier | No |
 
-## 🔄 Response Format
+## License
 
-The server returns JSON with:
-- `thoughtNumber`: Current step number
-- `totalThoughts`: Total steps estimated
-- `nextThoughtNeeded`: Whether more steps needed
-- `branches`: List of active branch IDs
-- `thoughtHistoryLength`: Total thoughts recorded
+MIT License
 
-## 👩‍💻 Development Setup
+## Acknowledgments
 
-1. Clone repository
-2. Create development environment:
-  ```bash
-  uv venv
-  source .venv/bin/activate  # or `.venv\Scripts\activate` on Windows
-  uv pip install -e .
-  ```
-
-## 📝 Example Usage
-
-To use with Claude:
-1. Start the server
-2. In Claude, begin with: "Use sequential thinking to solve this problem..."
-3. Enjoy
-
-## 🤝 Contributing & Support
-
-- Submit issues for bugs or suggestions
-- Pull requests are welcome
-- Follow coding standards in CONTRIBUTING.md
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
+- Model Context Protocol framework
+- Claude Desktop team
