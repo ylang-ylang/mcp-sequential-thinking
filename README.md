@@ -5,10 +5,7 @@ A Model Context Protocol (MCP) server that helps break down complex problems int
 ## Features
 
 - 🧠 **Sequential Problem Solving**: Break down complex problems step-by-step
-- 🔄 **Thought Revisions**: Review and modify previous thinking steps
-- 🌿 **Branching Paths**: Explore multiple solution approaches
 - 📊 **Progress Tracking**: Monitor thought sequences and branches
-- ⚡ **Rich Formatting**: Visual distinction between thoughts, revisions, and branches
 
 ## Prerequisites
 
