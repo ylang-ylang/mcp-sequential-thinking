@@ -2,6 +2,8 @@
 
 A Model Context Protocol (MCP) server that helps break down complex problems into clear, sequential steps. This tool enhances structured problem-solving by managing thought sequences, allowing revisions, and supporting multiple solution paths.
 
+<a href="https://glama.ai/mcp/servers/m83dfy8feg"><img width="380" height="200" src="https://glama.ai/mcp/servers/m83dfy8feg/badge" alt="Sequential Thinking Server MCP server" /></a>
+
 ## Features
 
 - 🧠 **Sequential Problem Solving**: Break down complex problems step-by-step
