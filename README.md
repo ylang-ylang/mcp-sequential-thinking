@@ -1,13 +1,16 @@
-# Sequential Thinking MCP Server
+# Enhanced Sequential Thinking MCP Server
 
-A Model Context Protocol (MCP) server that helps break down complex problems into clear, sequential steps. This tool enhances structured problem-solving by managing thought sequences, allowing revisions, and supporting multiple solution paths.
+This project implements an advanced Sequential Thinking server using the Model Context Protocol (MCP). It provides a structured and flexible approach to problem-solving and decision-making through a series of thought steps, incorporating stages, scoring, and tagging.
 
 <a href="https://glama.ai/mcp/servers/m83dfy8feg"><img width="380" height="200" src="https://glama.ai/mcp/servers/m83dfy8feg/badge" alt="Sequential Thinking Server MCP server" /></a>
 
 ## Features
 
-- 🧠 **Sequential Problem Solving**: Break down complex problems step-by-step
-- 📊 **Progress Tracking**: Monitor thought sequences and branches
+- 🧠 **Structured Problem Solving**: Break down complex problems into defined stages
+- 📊 **Progress Tracking**: Monitor thought sequences, branches, and revisions
+- 🏷️ **Thought Categorization**: Tag and score thoughts for better organization
+- 📈 **Dynamic Adaptation**: Adjust the thinking process as new insights emerge
+- 📝 **Summary Generation**: Get an overview of the entire thinking process
 
 ## Prerequisites
 
@@ -38,6 +41,12 @@ mcp-sequential-thinking/
    uv pip install -e .
    ```
 
+2. **Run the Server**
+   ```bash
+   cd mcp_sequential_thinking
+   uv run server.py
+   ```
+
 ## Claude Desktop Integration
 
 Add to your Claude Desktop configuration (`%APPDATA%\Claude\claude_desktop_config.json` on Windows):
@@ -58,13 +67,31 @@ Add to your Claude Desktop configuration (`%APPDATA%\Claude\claude_desktop_confi
 }
 ```
 
-## Development
+## API
 
-Test the server manually:
-```bash
-cd mcp_sequential_thinking
-uv run server.py
-```
+The server exposes two main tools:
+
+### 1. `sequential_thinking`
+
+This tool processes individual thoughts in the sequential thinking process.
+
+Parameters:
+- `thought` (str): The content of the current thought
+- `thought_number` (int): The sequence number of the current thought
+- `total_thoughts` (int): The total number of thoughts expected
+- `next_thought_needed` (bool): Whether another thought is needed
+- `stage` (str): The current stage of thinking (Problem Definition, Analysis, Ideation, Evaluation, Conclusion)
+- `is_revision` (bool, optional): Whether this revises previous thinking
+- `revises_thought` (int, optional): Which thought is being reconsidered
+- `branch_from_thought` (int, optional): Branching point thought number
+- `branch_id` (str, optional): Branch identifier
+- `needs_more_thoughts` (bool, optional): If more thoughts are needed
+- `score` (float, optional): Score for the thought (0.0 to 1.0)
+- `tags` (List[str], optional): List of tags for categorizing the thought
+
+### 2. `get_thinking_summary`
+
+This tool generates a summary of the entire thinking process.
 
 ## Troubleshooting
 
@@ -74,19 +101,6 @@ Common issues:
   - Verify paths in claude_desktop_config.json
   - Check Claude Desktop logs: `%APPDATA%\Claude\logs`
   - Test manual server start
-
-## Parameters
-
-| Parameter | Description | Required |
-|-----------|-------------|----------|
-| `thought` | Current thinking step | Yes |
-| `thought_number` | Step sequence number | Yes |
-| `total_thoughts` | Estimated steps needed | Yes |
-| `next_thought_needed` | Indicates if more steps required | Yes |
-| `is_revision` | Marks thought revision | No |
-| `revises_thought` | Identifies thought being revised | No |
-| `branch_from_thought` | Starting point for new branch | No |
-| `branch_id` | Unique branch identifier | No |
 
 ## License
 
