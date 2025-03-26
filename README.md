@@ -1,16 +1,16 @@
-# Enhanced Sequential Thinking MCP Server
+# Sequential Thinking MCP Server
 
-This project implements an advanced Sequential Thinking server using the Model Context Protocol (MCP). It provides a structured and flexible approach to problem-solving and decision-making through a series of thought steps, incorporating stages, scoring, and tagging.
+A Model Context Protocol (MCP) server that facilitates structured, progressive thinking through defined stages. This tool helps break down complex problems into sequential thoughts, track the progression of your thinking process, and generate summaries.
 
 <a href="https://glama.ai/mcp/servers/m83dfy8feg"><img width="380" height="200" src="https://glama.ai/mcp/servers/m83dfy8feg/badge" alt="Sequential Thinking Server MCP server" /></a>
 
 ## Features
 
-- 🧠 **Structured Problem Solving**: Break down complex problems into defined stages
-- 📊 **Progress Tracking**: Monitor thought sequences, branches, and revisions
-- 🏷️ **Thought Categorization**: Tag and score thoughts for better organization
-- 📈 **Dynamic Adaptation**: Adjust the thinking process as new insights emerge
-- 📝 **Summary Generation**: Get an overview of the entire thinking process
+- **Structured Thinking Framework**: Organizes thoughts through standard cognitive stages (Problem Definition, Research, Analysis, Synthesis, Conclusion)
+- **Thought Tracking**: Records and manages sequential thoughts with metadata
+- **Related Thought Analysis**: Identifies connections between similar thoughts
+- **Progress Monitoring**: Tracks your position in the overall thinking sequence
+- **Summary Generation**: Creates concise overviews of the entire thought process
 
 ## Prerequisites
 
@@ -67,46 +67,114 @@ Add to your Claude Desktop configuration (`%APPDATA%\Claude\claude_desktop_confi
 }
 ```
 
-## API
+# How It Works
 
-The server exposes two main tools:
+The server maintains a history of thoughts and processes them through a structured workflow. Each thought is validated, categorized, and stored with relevant metadata for later analysis.
 
-### 1. `sequential_thinking`
+## Usage Guide
 
-This tool processes individual thoughts in the sequential thinking process.
+The Sequential Thinking server exposes three main tools:
 
-Parameters:
-- `thought` (str): The content of the current thought
-- `thought_number` (int): The sequence number of the current thought
-- `total_thoughts` (int): The total number of thoughts expected
-- `next_thought_needed` (bool): Whether another thought is needed
-- `stage` (str): The current stage of thinking (Problem Definition, Analysis, Ideation, Evaluation, Conclusion)
-- `is_revision` (bool, optional): Whether this revises previous thinking
-- `revises_thought` (int, optional): Which thought is being reconsidered
-- `branch_from_thought` (int, optional): Branching point thought number
-- `branch_id` (str, optional): Branch identifier
-- `needs_more_thoughts` (bool, optional): If more thoughts are needed
-- `score` (float, optional): Score for the thought (0.0 to 1.0)
-- `tags` (List[str], optional): List of tags for categorizing the thought
+### 1. `process_thought`
 
-### 2. `get_thinking_summary`
+Records and analyzes a new thought in your sequential thinking process.
 
-This tool generates a summary of the entire thinking process.
+**Parameters:**
 
-## Troubleshooting
+- `thought` (string): The content of your thought
+- `thought_number` (integer): Position in your sequence (e.g., 1 for first thought)
+- `total_thoughts` (integer): Expected total thoughts in the sequence
+- `next_thought_needed` (boolean): Whether more thoughts are needed after this one
+- `stage` (string): The thinking stage - must be one of:
+  - "Problem Definition"
+  - "Research" 
+  - "Analysis"
+  - "Synthesis"
+  - "Conclusion"
+- `tags` (list of strings, optional): Keywords or categories for your thought
+- `axioms_used` (list of strings, optional): Principles or axioms applied in your thought
+- `assumptions_challenged` (list of strings, optional): Assumptions your thought questions or challenges
 
-Common issues:
+**Example:**
 
-- **Server Connection Issues**
-  - Verify paths in claude_desktop_config.json
-  - Check Claude Desktop logs: `%APPDATA%\Claude\logs`
-  - Test manual server start
+```python
+# First thought in a 5-thought sequence
+process_thought(
+    thought="The problem of climate change requires analysis of multiple factors including emissions, policy, and technology adoption.",
+    thought_number=1,
+    total_thoughts=5,
+    next_thought_needed=True,
+    stage="Problem Definition",
+    tags=["climate", "global policy", "systems thinking"],
+    axioms_used=["Complex problems require multifaceted solutions"],
+    assumptions_challenged=["Technology alone can solve climate change"]
+)
+```
+
+### 2. `generate_summary`
+
+Generates a summary of your entire thinking process.
+
+**Example output:**
+
+```json
+{
+  "summary": {
+    "totalThoughts": 5,
+    "stages": {
+      "Problem Definition": 1,
+      "Research": 1,
+      "Analysis": 1,
+      "Synthesis": 1,
+      "Conclusion": 1
+    },
+    "timeline": [
+      {"number": 1, "stage": "Problem Definition"},
+      {"number": 2, "stage": "Research"},
+      {"number": 3, "stage": "Analysis"},
+      {"number": 4, "stage": "Synthesis"},
+      {"number": 5, "stage": "Conclusion"}
+    ]
+  }
+}
+```
+
+### 3. `clear_history`
+
+Resets the thinking process by clearing all recorded thoughts.
+
+## Practical Applications
+
+- **Decision Making**: Work through important decisions methodically
+- **Problem Solving**: Break complex problems into manageable components
+- **Research Planning**: Structure your research approach with clear stages
+- **Writing Organization**: Develop ideas progressively before writing
+- **Project Analysis**: Evaluate projects through defined analytical stages
+
+
+## Getting Started
+
+With the proper MCP setup, simply use the `process_thought` tool to begin working through your thoughts in sequence. As you progress, you can get an overview with `generate_summary` and reset when needed with `clear_history`.
+
+
+
+# Customizing the Sequential Thinking Server
+
+For detailed examples of how to customize and extend the Sequential Thinking server, see [example.md](example.md). It includes code samples for:
+
+- Modifying thinking stages
+- Enhancing thought data structures
+- Adding persistence
+- Implementing enhanced analysis
+- Creating custom prompts
+- Setting up advanced configurations
+
+
+
 
 ## License
 
 MIT License
 
-## Acknowledgments
 
-- Model Context Protocol framework
-- Claude Desktop team
+
