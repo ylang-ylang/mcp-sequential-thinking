@@ -2,6 +2,10 @@
 
 A Model Context Protocol (MCP) server that facilitates structured, progressive thinking through defined stages. This tool helps break down complex problems into sequential thoughts, track the progression of your thinking process, and generate summaries.
 
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 <a href="https://glama.ai/mcp/servers/m83dfy8feg"><img width="380" height="200" src="https://glama.ai/mcp/servers/m83dfy8feg/badge" alt="Sequential Thinking Server MCP server" /></a>
 
 ## Features
@@ -11,10 +15,13 @@ A Model Context Protocol (MCP) server that facilitates structured, progressive t
 - **Related Thought Analysis**: Identifies connections between similar thoughts
 - **Progress Monitoring**: Tracks your position in the overall thinking sequence
 - **Summary Generation**: Creates concise overviews of the entire thought process
+- **Persistent Storage**: Automatically saves your thinking sessions
+- **Data Import/Export**: Share and reuse thinking sessions
+- **Extensible Architecture**: Easily customize and extend functionality
 
 ## Prerequisites
 
-- Python 3.11 or higher
+- Python 3.10 or higher
 - UV package manager ([Install Guide](https://github.com/astral-sh/uv))
 
 ## Project Structure
@@ -22,9 +29,14 @@ A Model Context Protocol (MCP) server that facilitates structured, progressive t
 ```
 mcp-sequential-thinking/
 ├── mcp_sequential_thinking/
-│   ├── server.py
+│   ├── server.py       # Main server implementation
+│   ├── models.py       # Data models
+│   ├── storage.py      # Persistence layer
+│   ├── analysis.py     # Thought analysis
 │   └── __init__.py
+├── tests/              # Unit tests
 ├── README.md
+├── example.md          # Customization examples
 └── pyproject.toml
 ```
 
@@ -36,15 +48,33 @@ mcp-sequential-thinking/
    uv venv
    .venv\Scripts\activate  # Windows
    source .venv/bin/activate  # Unix
-   
+
    # Install package and dependencies
    uv pip install -e .
+
+   # For development with testing tools
+   uv pip install -e ".[dev]"
+
+   # For all optional dependencies
+   uv pip install -e ".[all]"
    ```
 
 2. **Run the Server**
    ```bash
-   cd mcp_sequential_thinking
-   uv run server.py
+   # Run directly
+   uv run -m mcp_sequential_thinking.server
+
+   # Or use the installed script
+   mcp-sequential-thinking
+   ```
+
+3. **Run Tests**
+   ```bash
+   # Run all tests
+   pytest
+
+   # Run with coverage report
+   pytest --cov=mcp_sequential_thinking
    ```
 
 ## Claude Desktop Integration
@@ -55,13 +85,25 @@ Add to your Claude Desktop configuration (`%APPDATA%\Claude\claude_desktop_confi
 {
   "mcpServers": {
     "sequential-thinking": {
-      "command": "uv",
+      "command": "python",
       "args": [
-        "--directory",
-        "C:\\path\\to\\your\\mcp-sequential-thinking\\mcp_sequential_thinking",
-        "run",
-        "server.py"
-      ]
+        "C:\\path\\to\\your\\mcp-sequential-thinking\\run_server.py"
+      ],
+      "env": {
+        "PYTHONPATH": "C:\\path\\to\\your\\mcp-sequential-thinking"
+      }
+    }
+  }
+}
+```
+
+Alternatively, if you've installed the package with `pip install -e .`, you can use:
+
+```json
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "command": "mcp-sequential-thinking"
     }
   }
 }
@@ -87,7 +129,7 @@ Records and analyzes a new thought in your sequential thinking process.
 - `next_thought_needed` (boolean): Whether more thoughts are needed after this one
 - `stage` (string): The thinking stage - must be one of:
   - "Problem Definition"
-  - "Research" 
+  - "Research"
   - "Analysis"
   - "Synthesis"
   - "Conclusion"

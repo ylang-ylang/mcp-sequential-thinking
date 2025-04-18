@@ -1,57 +1,39 @@
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
-from enum import Enum
 import json
-from datetime import datetime
-from mcp.server.fastmcp import FastMCP
+import os
+import sys
+from typing import List, Optional
 
-class ThoughtStage(Enum):
-    """Basic thinking stages for structured sequential thinking"""
-    PROBLEM_DEFINITION = "Problem Definition"
-    RESEARCH = "Research"
-    ANALYSIS = "Analysis"
-    SYNTHESIS = "Synthesis"
-    CONCLUSION = "Conclusion"
-    
-    @classmethod
-    def from_string(cls, value: str) -> 'ThoughtStage':
-        """Convert a string to a thinking stage"""
-        try:
-            return cls(value)
-        except ValueError:
-            valid_stages = ", ".join(stage.value for stage in cls)
-            raise ValueError(f"Invalid thinking stage: '{value}'. Valid stages are: {valid_stages}")
+from mcp.server.fastmcp import FastMCP, Context
 
-@dataclass
-class ThoughtData:
-    """Data structure for a single thought"""
-    thought: str
-    thought_number: int
-    total_thoughts: int
-    next_thought_needed: bool
-    stage: ThoughtStage
-    tags: List[str] = field(default_factory=list)
-    axioms_used: List[str] = field(default_factory=list)
-    assumptions_challenged: List[str] = field(default_factory=list)
-    
-    def validate(self) -> bool:
-        """Validate thought data"""
-        if self.thought_number < 1:
-            raise ValueError("Thought number must be positive")
-        if self.total_thoughts < self.thought_number:
-            raise ValueError("Total thoughts must be greater or equal to current thought number")
-        return True
+# Use absolute imports when running as a script
+try:
+    # When installed as a package
+    from .models import ThoughtData, ThoughtStage
+    from .storage import ThoughtStorage
+    from .analysis import ThoughtAnalyzer
+    from .logging_conf import configure_logging
+except ImportError:
+    # When run directly
+    from mcp_sequential_thinking.models import ThoughtData, ThoughtStage
+    from mcp_sequential_thinking.storage import ThoughtStorage
+    from mcp_sequential_thinking.analysis import ThoughtAnalyzer
+    from mcp_sequential_thinking.logging_conf import configure_logging
+
+logger = configure_logging("sequential-thinking.server")
+
 
 mcp = FastMCP("sequential-thinking")
 
-thought_history = []
+storage_dir = os.environ.get("MCP_STORAGE_DIR", None)
+storage = ThoughtStorage(storage_dir)
 
 @mcp.tool()
-def process_thought(thought: str, thought_number: int, total_thoughts: int, 
-                    next_thought_needed: bool, stage: str, 
+def process_thought(thought: str, thought_number: int, total_thoughts: int,
+                    next_thought_needed: bool, stage: str,
                     tags: Optional[List[str]] = None,
-                    axioms_used: Optional[List[str]] = None, 
-                    assumptions_challenged: Optional[List[str]] = None) -> dict:
+                    axioms_used: Optional[List[str]] = None,
+                    assumptions_challenged: Optional[List[str]] = None,
+                    ctx: Optional[Context] = None) -> dict:
     """Add a sequential thought with its metadata.
 
     Args:
@@ -63,13 +45,22 @@ def process_thought(thought: str, thought_number: int, total_thoughts: int,
         tags: Optional keywords or categories for the thought
         axioms_used: Optional list of principles or axioms used in this thought
         assumptions_challenged: Optional list of assumptions challenged by this thought
+        ctx: Optional MCP context object
+
+    Returns:
+        dict: Analysis of the processed thought
     """
-    global thought_history
-    
     try:
+        # Log the request
+        logger.info(f"Processing thought #{thought_number}/{total_thoughts} in stage '{stage}'")
+
+        # Report progress if context is available
+        if ctx:
+            ctx.report_progress(thought_number - 1, total_thoughts)
+
         # Convert stage string to enum
         thought_stage = ThoughtStage.from_string(stage)
-        
+
         # Create thought data object with defaults for optional fields
         thought_data = ThoughtData(
             thought=thought,
@@ -81,43 +72,32 @@ def process_thought(thought: str, thought_number: int, total_thoughts: int,
             axioms_used=axioms_used or [],
             assumptions_challenged=assumptions_challenged or []
         )
-        
+
         # Validate and store
         thought_data.validate()
-        thought_history.append(thought_data)
-        
-        # Find related thoughts 
-        related_thoughts = [t for t in thought_history 
-                           if t.stage == thought_data.stage and t != thought_data][:3]
-        
-        # Create and return the response
+        storage.add_thought(thought_data)
+
+        # Get all thoughts for analysis
+        all_thoughts = storage.get_all_thoughts()
+
+        # Analyze the thought
+        analysis = ThoughtAnalyzer.analyze_thought(thought_data, all_thoughts)
+
+        # Log success
+        logger.info(f"Successfully processed thought #{thought_number}")
+
+        return analysis
+    except json.JSONDecodeError as e:
+        # Log JSON parsing error
+        logger.error(f"JSON parsing error: {e}")
         return {
-            "thoughtAnalysis": {
-                "currentThought": {
-                    "thoughtNumber": thought_data.thought_number,
-                    "totalThoughts": thought_data.total_thoughts,
-                    "nextThoughtNeeded": thought_data.next_thought_needed,
-                    "stage": thought_data.stage.value,
-                    "tags": thought_data.tags,
-                    "timestamp": datetime.now().isoformat()
-                },
-                "analysis": {
-                    "relatedThoughtsCount": len(related_thoughts),
-                    "relatedThoughtSummaries": [
-                        {
-                            "thoughtNumber": t.thought_number,
-                            "stage": t.stage.value,
-                            "snippet": t.thought[:100] + "..." if len(t.thought) > 100 else t.thought
-                        } for t in related_thoughts
-                    ]
-                },
-                "context": {
-                    "thoughtHistoryLength": len(thought_history),
-                    "currentStage": thought_data.stage.value
-                }
-            }
+            "error": f"JSON parsing error: {str(e)}",
+            "status": "failed"
         }
     except Exception as e:
+        # Log error
+        logger.error(f"Error processing thought: {str(e)}")
+
         return {
             "error": str(e),
             "status": "failed"
@@ -125,41 +105,151 @@ def process_thought(thought: str, thought_number: int, total_thoughts: int,
 
 @mcp.tool()
 def generate_summary() -> dict:
-    """Generate a summary of the entire thinking process"""
-    global thought_history
-    
-    if not thought_history:
-        return {"summary": "No thoughts recorded yet"}
-        
-    # Group thoughts by stage
-    stages = {}
-    for thought in thought_history:
-        if thought.stage.value not in stages:
-            stages[thought.stage.value] = []
-        stages[thought.stage.value].append(thought)
-        
-    # Create summary
-    summary = {
-        "totalThoughts": len(thought_history),
-        "stages": {
-            stage: len(thoughts) for stage, thoughts in stages.items()
-        },
-        "timeline": [
-            {
-                "number": t.thought_number,
-                "stage": t.stage.value
-            } for t in sorted(thought_history, key=lambda x: x.thought_number)
-        ]
-    }
-    
-    return {"summary": summary}
+    """Generate a summary of the entire thinking process.
+
+    Returns:
+        dict: Summary of the thinking process
+    """
+    try:
+        logger.info("Generating thinking process summary")
+
+        # Get all thoughts
+        all_thoughts = storage.get_all_thoughts()
+
+        # Generate summary
+        return ThoughtAnalyzer.generate_summary(all_thoughts)
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parsing error: {e}")
+        return {
+            "error": f"JSON parsing error: {str(e)}",
+            "status": "failed"
+        }
+    except Exception as e:
+        logger.error(f"Error generating summary: {str(e)}")
+        return {
+            "error": str(e),
+            "status": "failed"
+        }
 
 @mcp.tool()
 def clear_history() -> dict:
-    """Clear the thought history"""
-    global thought_history
-    thought_history.clear()
-    return {"status": "success", "message": "Thought history cleared"}
+    """Clear the thought history.
+
+    Returns:
+        dict: Status message
+    """
+    try:
+        logger.info("Clearing thought history")
+        storage.clear_history()
+        return {"status": "success", "message": "Thought history cleared"}
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parsing error: {e}")
+        return {
+            "error": f"JSON parsing error: {str(e)}",
+            "status": "failed"
+        }
+    except Exception as e:
+        logger.error(f"Error clearing history: {str(e)}")
+        return {
+            "error": str(e),
+            "status": "failed"
+        }
+
+@mcp.tool()
+def export_session(file_path: str) -> dict:
+    """Export the current thinking session to a file.
+
+    Args:
+        file_path: Path to save the exported session
+
+    Returns:
+        dict: Status message
+    """
+    try:
+        logger.info(f"Exporting session to {file_path}")
+        storage.export_session(file_path)
+        return {
+            "status": "success",
+            "message": f"Session exported to {file_path}"
+        }
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parsing error: {e}")
+        return {
+            "error": f"JSON parsing error: {str(e)}",
+            "status": "failed"
+        }
+    except Exception as e:
+        logger.error(f"Error exporting session: {str(e)}")
+        return {
+            "error": str(e),
+            "status": "failed"
+        }
+
+@mcp.tool()
+def import_session(file_path: str) -> dict:
+    """Import a thinking session from a file.
+
+    Args:
+        file_path: Path to the file to import
+
+    Returns:
+        dict: Status message
+    """
+    try:
+        logger.info(f"Importing session from {file_path}")
+        storage.import_session(file_path)
+        return {
+            "status": "success",
+            "message": f"Session imported from {file_path}"
+        }
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parsing error: {e}")
+        return {
+            "error": f"JSON parsing error: {str(e)}",
+            "status": "failed"
+        }
+    except Exception as e:
+        logger.error(f"Error importing session: {str(e)}")
+        return {
+            "error": str(e),
+            "status": "failed"
+        }
+
+
+def main():
+    """Entry point for the MCP server."""
+    logger.info("Starting Sequential Thinking MCP server")
+
+    # Ensure UTF-8 encoding for stdin/stdout
+    if hasattr(sys.stdout, 'buffer') and sys.stdout.encoding != 'utf-8':
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
+    if hasattr(sys.stdin, 'buffer') and sys.stdin.encoding != 'utf-8':
+        import io
+        sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', line_buffering=True)
+
+    # Flush stdout to ensure no buffered content remains
+    sys.stdout.flush()
+
+    # Run the MCP server
+    mcp.run()
+
 
 if __name__ == "__main__":
-    mcp.run()
+    # When running the script directly, ensure we're in the right directory
+    import os
+    import sys
+
+    # Add the parent directory to sys.path if needed
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+    # Print debug information
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Current working directory: {os.getcwd()}")
+    logger.info(f"Script directory: {os.path.dirname(os.path.abspath(__file__))}")
+    logger.info(f"Parent directory added to path: {parent_dir}")
+
+    # Run the server
+    main()
