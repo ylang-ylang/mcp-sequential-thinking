@@ -85,16 +85,16 @@ Add to your Claude Desktop configuration (`%APPDATA%\Claude\claude_desktop_confi
 {
   "mcpServers": {
     "sequential-thinking": {
-      "command": "python",
+      "command": "uv",
       "args": [
-        "C:\\path\\to\\your\\mcp-sequential-thinking\\run_server.py"
-      ],
-      "env": {
-        "PYTHONPATH": "C:\\path\\to\\your\\mcp-sequential-thinking"
+        "--directory",
+        "C:\\path\\to\\your\\mcp-sequential-thinking\\run_server.py",
+        "run",
+        "server.py"
+        ]
       }
     }
   }
-}
 ```
 
 Alternatively, if you've installed the package with `pip install -e .`, you can use:
