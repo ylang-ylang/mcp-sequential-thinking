@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import threading
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pathlib import Path
 from datetime import datetime
 
@@ -10,6 +10,7 @@ import portalocker
 
 from .models import ThoughtData, ThoughtStage
 from .logging_conf import configure_logging
+from .storage_utils import prepare_thoughts_for_serialization, save_thoughts_to_file, load_thoughts_from_file
 
 logger = configure_logging("sequential-thinking.storage")
 
@@ -46,49 +47,19 @@ class ThoughtStorage:
 
     def _load_session(self) -> None:
         """Load thought history from the current session file if it exists."""
-        if self.current_session_file.exists():
-            try:
-                # Use file locking to ensure thread safety
-                with portalocker.Lock(self.lock_file, timeout=10) as _:
-                    with open(self.current_session_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-
-                    with self._lock:
-                        self.thought_history = [
-                            ThoughtData.from_dict(thought_dict)
-                            for thought_dict in data.get("thoughts", [])
-                        ]
-            except (json.JSONDecodeError, KeyError) as e:
-                # Handle corrupted file
-                logger.error(f"Error loading session: {e}")
-                # Create backup of corrupted file
-                backup_file = self.current_session_file.with_suffix(f".bak.{datetime.now().strftime('%Y%m%d%H%M%S')}")
-                self.current_session_file.rename(backup_file)
-                with self._lock:
-                    self.thought_history = []
+        with self._lock:
+            # Use the utility function to handle loading with proper error handling
+            self.thought_history = load_thoughts_from_file(self.current_session_file, self.lock_file)
 
     def _save_session(self) -> None:
         """Save the current thought history to the session file."""
         # Use thread lock to ensure consistent data
         with self._lock:
-            # Include IDs when saving to storage
-            thoughts_with_ids = []
-            for thought in self.thought_history:
-                # Set flag to include ID in dictionary
-                thought._include_id_in_dict = True
-                thoughts_with_ids.append(thought.to_dict())
-                # Reset flag
-                thought._include_id_in_dict = False
-
-            data = {
-                "thoughts": thoughts_with_ids,
-                "lastUpdated": datetime.now().isoformat()
-            }
-
-        # Use file locking to ensure thread safety when writing
-        with portalocker.Lock(self.lock_file, timeout=10) as _:
-            with open(self.current_session_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+            # Use utility functions to prepare and save thoughts
+            thoughts_with_ids = prepare_thoughts_for_serialization(self.thought_history)
+        
+        # Save to file with proper locking
+        save_thoughts_to_file(self.current_session_file, thoughts_with_ids, self.lock_file)
 
     def add_thought(self, thought: ThoughtData) -> None:
         """Add a thought to the history and save the session.
@@ -135,17 +106,11 @@ class ThoughtStorage:
             file_path: Path to save the exported session
         """
         with self._lock:
-            # Include IDs when exporting
-            thoughts_with_ids = []
-            for thought in self.thought_history:
-                # Set flag to include ID in dictionary
-                thought._include_id_in_dict = True
-                thoughts_with_ids.append(thought.to_dict())
-                # Reset flag
-                thought._include_id_in_dict = False
-
-            data = {
-                "thoughts": thoughts_with_ids,
+            # Use utility function to prepare thoughts for serialization
+            thoughts_with_ids = prepare_thoughts_for_serialization(self.thought_history)
+            
+            # Create export-specific metadata
+            metadata = {
                 "exportedAt": datetime.now().isoformat(),
                 "metadata": {
                     "totalThoughts": len(self.thought_history),
@@ -155,9 +120,13 @@ class ThoughtStorage:
                     }
                 }
             }
-
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        # Convert string path to Path object for compatibility with utility
+        file_path_obj = Path(file_path)
+        lock_file = file_path_obj.with_suffix('.lock')
+        
+        # Use utility function to save with proper locking
+        save_thoughts_to_file(file_path_obj, thoughts_with_ids, lock_file, metadata)
 
     def import_session(self, file_path: str) -> None:
         """Import a session from a file.
@@ -170,14 +139,13 @@ class ThoughtStorage:
             json.JSONDecodeError: If the file is not valid JSON
             KeyError: If the file doesn't contain valid thought data
         """
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-        thoughts = [
-            ThoughtData.from_dict(thought_dict)
-            for thought_dict in data.get("thoughts", [])
-        ]
-
+        # Convert string path to Path object for compatibility with utility
+        file_path_obj = Path(file_path)
+        lock_file = file_path_obj.with_suffix('.lock')
+        
+        # Use utility function to load thoughts with proper error handling
+        thoughts = load_thoughts_from_file(file_path_obj, lock_file)
+        
         with self._lock:
             self.thought_history = thoughts
 

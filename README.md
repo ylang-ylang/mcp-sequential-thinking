@@ -15,29 +15,51 @@ A Model Context Protocol (MCP) server that facilitates structured, progressive t
 - **Related Thought Analysis**: Identifies connections between similar thoughts
 - **Progress Monitoring**: Tracks your position in the overall thinking sequence
 - **Summary Generation**: Creates concise overviews of the entire thought process
-- **Persistent Storage**: Automatically saves your thinking sessions
+- **Persistent Storage**: Automatically saves your thinking sessions with thread-safety
 - **Data Import/Export**: Share and reuse thinking sessions
 - **Extensible Architecture**: Easily customize and extend functionality
+- **Robust Error Handling**: Graceful handling of edge cases and corrupted data
+- **Type Safety**: Comprehensive type annotations and validation
 
 ## Prerequisites
 
 - Python 3.10 or higher
 - UV package manager ([Install Guide](https://github.com/astral-sh/uv))
 
+## Key Technologies
+
+- **Pydantic**: For data validation and serialization
+- **Portalocker**: For thread-safe file access
+- **FastMCP**: For Model Context Protocol integration
+- **Rich**: For enhanced console output
+- **PyYAML**: For configuration management
+
 ## Project Structure
 
 ```
 mcp-sequential-thinking/
 ├── mcp_sequential_thinking/
-│   ├── server.py       # Main server implementation
-│   ├── models.py       # Data models
-│   ├── storage.py      # Persistence layer
-│   ├── analysis.py     # Thought analysis
+│   ├── server.py       # Main server implementation and MCP tools
+│   ├── models.py       # Data models with Pydantic validation
+│   ├── storage.py      # Thread-safe persistence layer
+│   ├── storage_utils.py # Shared utilities for storage operations
+│   ├── analysis.py     # Thought analysis and pattern detection
+│   ├── testing.py      # Test utilities and helper functions
+│   ├── utils.py        # Common utilities and helper functions
+│   ├── logging_conf.py # Centralized logging configuration
+│   └── __init__.py     # Package initialization
+├── tests/              
+│   ├── test_analysis.py # Tests for analysis functionality
+│   ├── test_models.py   # Tests for data models
+│   ├── test_storage.py  # Tests for persistence layer
 │   └── __init__.py
-├── tests/              # Unit tests
-├── README.md
+├── run_server.py       # Server entry point script
+├── debug_mcp_connection.py # Utility for debugging connections
+├── README.md           # Main documentation
+├── CHANGELOG.md        # Version history and changes
 ├── example.md          # Customization examples
-└── pyproject.toml
+├── LICENSE             # MIT License
+└── pyproject.toml      # Project configuration and dependencies
 ```
 
 ## Quick Start
@@ -111,7 +133,7 @@ Alternatively, if you've installed the package with `pip install -e .`, you can 
 
 # How It Works
 
-The server maintains a history of thoughts and processes them through a structured workflow. Each thought is validated, categorized, and stored with relevant metadata for later analysis.
+The server maintains a history of thoughts and processes them through a structured workflow. Each thought is validated using Pydantic models, categorized into thinking stages, and stored with relevant metadata in a thread-safe storage system. The server automatically handles data persistence, backup creation, and provides tools for analyzing relationships between thoughts.
 
 ## Usage Guide
 
@@ -205,11 +227,17 @@ With the proper MCP setup, simply use the `process_thought` tool to begin workin
 For detailed examples of how to customize and extend the Sequential Thinking server, see [example.md](example.md). It includes code samples for:
 
 - Modifying thinking stages
-- Enhancing thought data structures
-- Adding persistence
-- Implementing enhanced analysis
+- Enhancing thought data structures with Pydantic
+- Adding persistence with databases
+- Implementing enhanced analysis with NLP
 - Creating custom prompts
 - Setting up advanced configurations
+- Building web UI integrations
+- Implementing visualization tools
+- Connecting to external services
+- Creating collaborative environments
+- Separating test code
+- Building reusable utilities
 
 
 

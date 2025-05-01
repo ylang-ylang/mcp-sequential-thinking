@@ -93,28 +93,52 @@ class ThoughtData(BaseModel):
         # Validation is now handled by Pydantic automatically
         return True
 
-    def to_dict(self) -> dict:
+    def to_dict(self, include_id: bool = False) -> dict:
         """Convert the thought data to a dictionary representation.
+
+        Args:
+            include_id: Whether to include the ID in the dictionary representation.
+                        Default is False to maintain compatibility with tests.
 
         Returns:
             dict: Dictionary representation of the thought data
         """
-        result = {
-            "thought": self.thought,
-            "thoughtNumber": self.thought_number,
-            "totalThoughts": self.total_thoughts,
-            "nextThoughtNeeded": self.next_thought_needed,
-            "stage": self.stage.value,
-            "tags": self.tags,
-            "axiomsUsed": self.axioms_used,
-            "assumptionsChallenged": self.assumptions_challenged,
-            "timestamp": self.timestamp
-        }
+        from .utils import to_camel_case
 
-        # Include ID only for internal use, not for test comparisons
-        if hasattr(self, '_include_id_in_dict') and self._include_id_in_dict:
-            result["id"] = str(self.id)
-
+        # Get all model fields, excluding internal properties
+        data = self.model_dump()
+        
+        # Handle special conversions
+        data["stage"] = self.stage.value
+        
+        if not include_id:
+            # Remove ID for external representations
+            data.pop("id", None)
+        else:
+            # Convert ID to string for JSON serialization
+            data["id"] = str(data["id"])
+        
+        # Convert snake_case keys to camelCase for API consistency
+        result = {}
+        for key, value in data.items():
+            if key == "stage":
+                # Stage is already handled above
+                continue
+                
+            camel_key = to_camel_case(key)
+            result[camel_key] = value
+        
+        # Ensure these fields are always present with camelCase naming
+        result["thought"] = self.thought
+        result["thoughtNumber"] = self.thought_number
+        result["totalThoughts"] = self.total_thoughts
+        result["nextThoughtNeeded"] = self.next_thought_needed
+        result["stage"] = self.stage.value
+        result["tags"] = self.tags
+        result["axiomsUsed"] = self.axioms_used
+        result["assumptionsChallenged"] = self.assumptions_challenged
+        result["timestamp"] = self.timestamp
+        
         return result
 
     @classmethod
@@ -127,27 +151,46 @@ class ThoughtData(BaseModel):
         Returns:
             ThoughtData: A new ThoughtData instance
         """
-        # Convert legacy dictionary format to new model
-        model_data = {
-            "thought": data["thought"],
-            "thought_number": data["thoughtNumber"],
-            "total_thoughts": data["totalThoughts"],
-            "next_thought_needed": data["nextThoughtNeeded"],
-            "stage": ThoughtStage.from_string(data["stage"]),
-            "tags": data.get("tags", []),
-            "axioms_used": data.get("axiomsUsed", []),
-            "assumptions_challenged": data.get("assumptionsChallenged", []),
-            "timestamp": data.get("timestamp", datetime.now().isoformat())
+        from .utils import to_snake_case
+        
+        # Convert any camelCase keys to snake_case
+        snake_data = {}
+        mappings = {
+            "thoughtNumber": "thought_number",
+            "totalThoughts": "total_thoughts",
+            "nextThoughtNeeded": "next_thought_needed",
+            "axiomsUsed": "axioms_used",
+            "assumptionsChallenged": "assumptions_challenged"
         }
+        
+        # Process known direct mappings
+        for camel_key, snake_key in mappings.items():
+            if camel_key in data:
+                snake_data[snake_key] = data[camel_key]
+        
+        # Copy fields that don't need conversion
+        for key in ["thought", "tags", "timestamp"]:
+            if key in data:
+                snake_data[key] = data[key]
+                
+        # Handle special fields
+        if "stage" in data:
+            snake_data["stage"] = ThoughtStage.from_string(data["stage"])
+            
+        # Set default values for missing fields
+        snake_data.setdefault("tags", [])
+        snake_data.setdefault("axioms_used", data.get("axiomsUsed", []))
+        snake_data.setdefault("assumptions_challenged", data.get("assumptionsChallenged", []))
+        snake_data.setdefault("timestamp", datetime.now().isoformat())
 
         # Add ID if present, otherwise generate a new one
         if "id" in data:
             try:
-                model_data["id"] = UUID(data["id"])
+                snake_data["id"] = UUID(data["id"])
             except (ValueError, TypeError):
-                model_data["id"] = uuid4()
+                snake_data["id"] = uuid4()
 
-        return cls(**model_data)
+        return cls(**snake_data)
 
     model_config = {
         "arbitrary_types_allowed": True
