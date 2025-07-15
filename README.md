@@ -131,6 +131,25 @@ Alternatively, if you've installed the package with `pip install -e .`, you can 
 }
 ```
 
+You can also run it directly using uvx and skipping the installation step:
+
+```json
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/arben-adm/mcp-sequential-thinking",
+        "--with",
+        "portalocker",
+        "mcp-sequential-thinking"
+      ]
+    }
+  }
+}
+```
+
 # How It Works
 
 The server maintains a history of thoughts and processes them through a structured workflow. Each thought is validated using Pydantic models, categorized into thinking stages, and stored with relevant metadata in a thread-safe storage system. The server automatically handles data persistence, backup creation, and provides tools for analyzing relationships between thoughts.
